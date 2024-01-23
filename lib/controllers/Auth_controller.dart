@@ -79,6 +79,7 @@ class AuthController extends GetxController {
     getGoogleCredentials().then((value) async {
       credential = value;
       await auth.signInWithCredential(credential).then((value) {
+        Get.snackbar('Login Successfully',"");
         Get.to(HomeScreen());
       });
     });

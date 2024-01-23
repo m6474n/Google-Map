@@ -1,8 +1,10 @@
 import 'dart:async';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_map/views/googleMap/MapScreen.dart';
@@ -13,6 +15,8 @@ class MapController extends GetxController {
   @override
   void onInit() {
     // TODO: implement onInit
+    searchController.addListener(() { onChanged();});
+
     // id = uuid.v4();
     // moveToCurrentLocation();
     super.onInit();
@@ -23,76 +27,92 @@ class MapController extends GetxController {
   List<LatLng> polylineCoordinates = [];
   PointLatLng? source;
   PointLatLng? destination;
-
+  LatLngBounds? bounds;
 // var id;
 // var uuid = Uuid();
   LatLng initialCamera = LatLng(32.5750722, 74.0072031);
+
+  final searchController = TextEditingController();
   Completer<GoogleMapController> completer = Completer();
   FirebaseFirestore ref = FirebaseFirestore.instance;
   List<Marker> markers = [];
+  String? pageTitle;
 
 // Load map
   loadMap(String title) {
-    return StreamBuilder(
-        stream: ref.collection('Markers').snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-          for (int i = 0; i < snapshot.data!.docs.length; i++) {
-            markers.add(Marker(
-                markerId: MarkerId(i.toString()),
-                position: LatLng(snapshot.data!.docs[i]['lat'],
-                    snapshot.data!.docs[i]['long']),
-                infoWindow: InfoWindow(title: snapshot.data!.docs[i]['info'])));
-          }
+    if(title == 'Route'){
+      return StreamBuilder(
+          stream: ref.collection('Markers').snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Center(child: CircularProgressIndicator());
+            }
+            for (int i = 0; i < snapshot.data!.docs.length; i++) {
+              markers.add(Marker(
+                  markerId: MarkerId(i.toString()),
+                  position: LatLng(snapshot.data!.docs[i]['lat'],
+                      snapshot.data!.docs[i]['long']),
+                  infoWindow: InfoWindow(title: snapshot.data!.docs[i]['info'])));
+            }
+            return GoogleMap(
+
+                mapType: MapType.normal,
+                markers: Set<Marker>.of(markers),
+                polylines: {
+                  Polyline(
+                      polylineId: PolylineId('route'),
+                      points: polylineCoordinates,
+                      width: 3,
+                      color: Colors.deepPurple)
+                },
+                // onTap: (LatLng position) {
+                //   addMarker(title, position.latitude, position.longitude, title);
+                //   if (title == 'Source') {
+                //     // markers.add(Marker(markerId: MarkerId('Source'),position: LatLng(position.latitude,position.longitude), infoWindow: InfoWindow(title: 'Source')));
+                //     updateSource(position);
+                //   }
+                //   if (title == 'Destination') {
+                //     // markers.add(Marker(markerId: MarkerId('Destination'),position: LatLng(position.latitude,position.longitude), infoWindow: InfoWindow(title: 'Destination')));
+                //
+                //     updateDestination(position);
+                //   }
+                //   update();
+                // },
+                onMapCreated: (GoogleMapController controller) {
+                  if(completer.isCompleted){
+                    completer.complete(controller);
+                  }
+                  // LatLngBounds(southwest: LatLng(source!.latitude, source!.longitude), northeast: LatLng(destination!.latitude, destination!.longitude));
+                  update();
+                },
+                initialCameraPosition:
+                CameraPosition(target: initialCamera,zoom: 12 ));
+          });
+    }
+
+
           return GoogleMap(
-              zoomControlsEnabled: false,
               mapType: MapType.normal,
               markers: Set<Marker>.of(markers),
-              polylines: {
-                Polyline(
-                    polylineId: PolylineId('route'),
-                    points: polylineCoordinates,
-                    width: 3,
-                    color: Colors.deepPurple)
-              },
-              onTap: (LatLng position) {
+              onTap:  (LatLng position) {
                 addMarker(title, position.latitude, position.longitude, title);
                 if (title == 'Source') {
-                  // markers.add(Marker(markerId: MarkerId('Source'),position: LatLng(position.latitude,position.longitude), infoWindow: InfoWindow(title: 'Source')));
-                  updateSource('Source Updated', position);
+                  updateSource(position);
+                  print(source);
                 }
                 if (title == 'Destination') {
                   // markers.add(Marker(markerId: MarkerId('Destination'),position: LatLng(position.latitude,position.longitude), infoWindow: InfoWindow(title: 'Destination')));
+                  print(destination);
 
-                  updateDestination("Destination Updated", position);
+                  updateDestination(position);
                 }
                 update();
               },
               onMapCreated: (GoogleMapController controller) {
                 completer.complete(controller);
               },
-              initialCameraPosition:
-                  CameraPosition(target: initialCamera, zoom: 12));
-        });
+              initialCameraPosition: CameraPosition(target: initialCamera, zoom: 12));
 
-    // return StreamBuilder(
-    //     stream: ref.collection('markers').snapshots(),
-    //     builder: (context, snapshot) {
-    //       if (!snapshot.hasData) {
-    //         return Center(
-    //           child: CircularProgressIndicator(),
-    //         );
-    //       }
-    //       return GoogleMap(
-    //           mapType: MapType.normal,
-    //           markers: Set<Marker>.of(markers),
-    //           onMapCreated: (GoogleMapController controller) {
-    //             completer.complete(controller);
-    //           },
-    //           initialCameraPosition: CameraPosition(target: initialCamera));
-    //     });
   }
 
   //Get current location
@@ -125,7 +145,7 @@ class MapController extends GetxController {
     await getCurrentLocation().then((value) async {
       initialCamera = LatLng(value.latitude, value.longitude);
       CameraPosition newCameraPosition = CameraPosition(
-          target: LatLng(value.latitude, value.longitude), zoom: 12);
+          target: LatLng(value.latitude, value.longitude),zoom: 12);
       GoogleMapController controller = await completer.future;
       controller
           .animateCamera(CameraUpdate.newCameraPosition(newCameraPosition));
@@ -146,18 +166,26 @@ class MapController extends GetxController {
   }
 
 // update source
-  updateSource(String text, LatLng position) {
-    sourceController.text = text;
+  updateSource( LatLng position) async{
+    List<Placemark> placemark = await placemarkFromCoordinates(position.latitude, position.longitude);
+    markers.add(Marker(markerId: MarkerId('Source'), position: position, infoWindow: InfoWindow(title: 'Source')));
+    sourceController.text = "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
+    pageTitle = "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
     source = PointLatLng(position.latitude, position.longitude);
     update();
   }
 
 // update destination
-  updateDestination(String text, LatLng position) {
+  updateDestination( LatLng position) async {
+    List<Placemark> placemark = await placemarkFromCoordinates(position.latitude, position.longitude);
+    markers.add(Marker(markerId: MarkerId('Destination'), position: position, infoWindow: InfoWindow(title: 'Destination')));
+pageTitle ="${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
     destination = PointLatLng(position.latitude, position.longitude);
-    destinationController.text = text;
+    destinationController.text =  "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
     update();
   }
+
+
 
   //PolyLine service
   void getPolyPoints(PointLatLng source, PointLatLng destination) async {
@@ -176,6 +204,7 @@ class MapController extends GetxController {
 //generate route
   generateRoute() {
     markers.clear();
+    setBounds();
     if (source == null || destination == null) {
       Get.snackbar('Invalid Source or Destination!', "Enter valid Location");
     } else {
@@ -186,5 +215,71 @@ class MapController extends GetxController {
     print(source);
   }
 
-  //add point to polygon
+  //Bounds
+  setBounds() async{
+    LatLngBounds bounds =  LatLngBounds(southwest: LatLng(source!.latitude, source!.longitude), northeast: LatLng(destination!.latitude,destination!.longitude));
+  GoogleMapController controller = await completer.future;
+  controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
+  update();
+  }
+
+
+  //search
+
+  var uuid = Uuid();
+  String _sessionToken = "112233";
+  List<dynamic> placeList = [];
+
+  onChanged() {
+    if (_sessionToken == null) {
+      _sessionToken = uuid.v4();
+      update();
+    }
+    getSuggestions(searchController.text);
+  }
+
+  getSuggestions(String input) async {
+    String apiKey = "AIzaSyCGXjH2olWHaRbJBH4SRNGmYfX60skyWs8";
+    String baseUrl =
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+    String request =
+        '$baseUrl?input=$input&key=$apiKey&sessiontoken=$_sessionToken';
+
+    var response = await http.get(Uri.parse(request));
+
+    print(response.body.toString());
+
+    if (response.statusCode == 200) {
+      placeList = jsonDecode(response.body.toString())['predictions'];
+    } else {
+      throw Exception("Failed to get data");
+    }
+
+    update();
+  }
+  //update screen on search
+
+  updateScreen(
+      String address,
+      ) async {
+    List locals = await locationFromAddress(address);
+    print(locals.last.longitude);
+    CameraPosition newCameraPosition = CameraPosition(
+        target: LatLng(locals.last.latitude, locals.last.longitude), zoom: 12);
+    GoogleMapController controller = await completer.future;
+    controller.animateCamera(CameraUpdate.newCameraPosition(newCameraPosition));
+
+    // searchController.text = address;
+
+    update();
+  }
+@override
+  void dispose() {
+    // TODO: implement dispose
+searchController.dispose();
+
+
+  super.dispose();
+  }
 }
+

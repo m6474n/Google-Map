@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_map/components/CustomButton.dart';
@@ -7,6 +9,9 @@ import 'package:google_map/components/cutomButton2.dart';
 import 'package:google_map/controllers/Auth_controller.dart';
 import 'package:google_map/controllers/MapController.dart';
 import 'package:google_map/views/googleMap/MapScreen.dart';
+import 'package:google_map/views/googleMap/PolygonScreen.dart';
+import 'package:google_map/views/googleMap/destinationScreen.dart';
+import 'package:google_map/views/googleMap/sourceScreen.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
@@ -38,8 +43,10 @@ class HomeScreen extends StatelessWidget {
                     ontap: () {
                       Get.find<MapController>().markers.clear();
                       Get.find<MapController>().polylineCoordinates.clear();
+                      Get.find<MapController>().pageTitle = null;
+
                       Get.to(MapScreen(
-                        title: 'Source',
+                     title: "Source"
                       ));
                       print('source Location');
                     },
@@ -52,6 +59,8 @@ class HomeScreen extends StatelessWidget {
                 CustomInput(
                     ontap: () {
                       Get.find<MapController>().markers.clear();
+                      Get.find<MapController>().pageTitle = null;
+
                       Get.find<MapController>().polylineCoordinates.clear();
 
                       Get.to(MapScreen(title: 'Destination'));
@@ -61,8 +70,10 @@ class HomeScreen extends StatelessWidget {
                     label: 'Destination',
                     prefixIcon: Icons.location_city),
                 // SizedBox(height: 12,),
-                // CustomButton2(
-                //     label: 'PolyGon Screen', onTap: () {}, isLoading: false)
+                CustomButton2(
+                    label: 'PolyGon Screen', onTap: () {
+                      Get.to(PolygonScreen());
+                }, isLoading: false)
               ],
             )),
           );
@@ -75,7 +86,7 @@ class HomeScreen extends StatelessWidget {
           label: 'Generate',
           onTap: () {
             Get.find<MapController>().polylineCoordinates.clear();
-
+            Get.find<MapController>().completer = Completer();
             Get.find<MapController>().generateRoute();
           },
         ),
