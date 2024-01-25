@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 class CustomButton2 extends StatelessWidget {
   final bool isLoading;
+  final Color color;
   final String label;
   final VoidCallback onTap;
   const CustomButton2(
       {super.key,
         required this.label,
         required this.onTap,
-        required this.isLoading});
+        required this.isLoading, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +23,7 @@ class CustomButton2 extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.fromBorderSide(BorderSide.none),
-            color: Colors.grey,
+            color: color,
           ),
           child: isLoading == true
               ? Center(

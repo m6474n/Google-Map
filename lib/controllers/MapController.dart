@@ -15,12 +15,14 @@ class MapController extends GetxController {
   @override
   void onInit() {
     // TODO: implement onInit
-    searchController.addListener(() { onChanged();});
+   searchController.addListener(() { onChanged();});
 
     // id = uuid.v4();
     // moveToCurrentLocation();
     super.onInit();
   }
+
+   RxString title = 'Location'.obs;
 
   final TextEditingController sourceController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
@@ -65,24 +67,11 @@ class MapController extends GetxController {
                       width: 3,
                       color: Colors.deepPurple)
                 },
-                // onTap: (LatLng position) {
-                //   addMarker(title, position.latitude, position.longitude, title);
-                //   if (title == 'Source') {
-                //     // markers.add(Marker(markerId: MarkerId('Source'),position: LatLng(position.latitude,position.longitude), infoWindow: InfoWindow(title: 'Source')));
-                //     updateSource(position);
-                //   }
-                //   if (title == 'Destination') {
-                //     // markers.add(Marker(markerId: MarkerId('Destination'),position: LatLng(position.latitude,position.longitude), infoWindow: InfoWindow(title: 'Destination')));
-                //
-                //     updateDestination(position);
-                //   }
-                //   update();
-                // },
+              
                 onMapCreated: (GoogleMapController controller) {
                   if(completer.isCompleted){
                     completer.complete(controller);
                   }
-                  // LatLngBounds(southwest: LatLng(source!.latitude, source!.longitude), northeast: LatLng(destination!.latitude, destination!.longitude));
                   update();
                 },
                 initialCameraPosition:
@@ -96,12 +85,12 @@ class MapController extends GetxController {
               markers: Set<Marker>.of(markers),
               onTap:  (LatLng position) {
                 addMarker(title, position.latitude, position.longitude, title);
+
                 if (title == 'Source') {
                   updateSource(position);
                   print(source);
                 }
                 if (title == 'Destination') {
-                  // markers.add(Marker(markerId: MarkerId('Destination'),position: LatLng(position.latitude,position.longitude), infoWindow: InfoWindow(title: 'Destination')));
                   print(destination);
 
                   updateDestination(position);
@@ -149,7 +138,6 @@ class MapController extends GetxController {
       GoogleMapController controller = await completer.future;
       controller
           .animateCamera(CameraUpdate.newCameraPosition(newCameraPosition));
-      // markers.add(Marker(markerId: MarkerId('1'),position: LatLng(value.latitude,value.longitude), infoWindow:const InfoWindow(title: 'My Location')));
     });
     update();
   }
@@ -162,7 +150,6 @@ class MapController extends GetxController {
         .doc(title)
         .set({"id": id, 'info': title, 'long': long, 'lat': lat});
 
-    // markers.add(Marker(markerId: MarkerId(id), position: LatLng(lat, long), infoWindow: InfoWindow(title: title)));
   }
 
 // update source
@@ -170,7 +157,7 @@ class MapController extends GetxController {
     List<Placemark> placemark = await placemarkFromCoordinates(position.latitude, position.longitude);
     markers.add(Marker(markerId: MarkerId('Source'), position: position, infoWindow: InfoWindow(title: 'Source')));
     sourceController.text = "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
-    pageTitle = "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
+    title("${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}");
     source = PointLatLng(position.latitude, position.longitude);
     update();
   }
@@ -179,7 +166,7 @@ class MapController extends GetxController {
   updateDestination( LatLng position) async {
     List<Placemark> placemark = await placemarkFromCoordinates(position.latitude, position.longitude);
     markers.add(Marker(markerId: MarkerId('Destination'), position: position, infoWindow: InfoWindow(title: 'Destination')));
-pageTitle ="${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
+    title("${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}");
     destination = PointLatLng(position.latitude, position.longitude);
     destinationController.text =  "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
     update();
@@ -273,6 +260,13 @@ pageTitle ="${placemark.last.street}, ${placemark.last.administrativeArea}, ${pl
 
     update();
   }
+
+
+  clearTitle(){
+    title('Location');
+    update();
+  }
+
 @override
   void dispose() {
     // TODO: implement dispose

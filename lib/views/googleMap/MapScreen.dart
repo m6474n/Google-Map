@@ -5,17 +5,17 @@ import 'package:get/get.dart';
 import 'package:google_map/components/CustomButton.dart';
 import 'package:google_map/components/searchField.dart';
 import 'package:google_map/controllers/MapController.dart';
-import 'package:google_map/views/HomeScreen.dart';
+import 'package:google_map/views/HomePage.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 class MapScreen extends StatelessWidget {
   String title;
    MapScreen({super.key, required this.title});
 
-
+MapController c = Get.put(MapController());
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title !="Route"? Get.find<MapController>().pageTitle ==null? title:Get.find<MapController>().pageTitle!: title),),
+      appBar: AppBar(title: Obx(()=>Text('${c.title.value.toString()}'))),
       body: GetBuilder(
         init: MapController(),
         builder: (controller){
@@ -56,8 +56,9 @@ class MapScreen extends StatelessWidget {
       floatingActionButton:title == 'Route'? Container(): Padding(
         padding: const EdgeInsets.all(18),
         child: CustomButton(label: 'Confirm', onTap: () {
-          Get.to(HomeScreen());
+          Get.to(HomePage());
           Get.find<MapController>().searchController.clear();
+          Get.find<MapController>().clearTitle();
           Get.find<MapController>().completer = Completer();
 
         }, isLoading: false,),

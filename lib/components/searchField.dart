@@ -8,6 +8,7 @@ class SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+
       decoration: InputDecoration(
           hintText: 'Search...',
           filled: true,
