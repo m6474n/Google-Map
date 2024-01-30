@@ -9,6 +9,7 @@ import 'package:google_map/components/EmailField.dart';
 import 'package:google_map/components/PasswordField.dart';
 import 'package:google_map/controllers/Auth_controller.dart';
 import 'package:google_map/views/HomePage.dart';
+import 'package:google_map/views/auth/forgetPass.dart';
 import 'package:google_map/views/auth/registerScreen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -55,7 +56,9 @@ class LoginScreen extends StatelessWidget {
                       Container(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                           Get.to(ForgetPassword());
+                          },
                           child: Text('Forget Password?'),
                         ),
                       ),

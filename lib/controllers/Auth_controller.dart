@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get/get.dart';
+import 'package:google_map/controllers/notificationController.dart';
 import 'package:google_map/views/HomePage.dart';
 import 'package:twitter_login/twitter_login.dart';
 
@@ -14,7 +16,7 @@ class AuthController extends GetxController {
   bool get toggle => _toggle;
   UserCredential? user;
   // final Stream profile  = FirebaseFirestore.instance.collection('Users').doc(FirebaseAuth.instance.currentUser!.uid).snapshots();
-
+  NotificationController notify = Get.put(NotificationController());
   final emailController = TextEditingController();
   final passController = TextEditingController();
 
@@ -25,14 +27,15 @@ class AuthController extends GetxController {
 
   createUserWithEmail(String email, String password) {
     clearDb();
-    setLoading(true);
+    EasyLoading.show(status: "Creating Profile, Please wait...", );
     auth
         .createUserWithEmailAndPassword(email: email, password: password)
         .then((value) {
       Get.snackbar('User Created Successfully', '',
           backgroundColor: Colors.green, colorText: Colors.white);
     }).then((value) {
-      setLoading(false);
+      notify.addTokenToFirebase();
+      EasyLoading.dismiss();
       Get.to(HomePage());
     }).onError((error, stackTrace) {
       Get.snackbar('Error', error.toString(), backgroundColor: Colors.red);
@@ -42,27 +45,31 @@ class AuthController extends GetxController {
 
   loginWithEmail(String email, String password) {
     clearDb();
-    setLoading(true);
+    EasyLoading.show(status: "Logging in to your account, Please wait...", );
     auth
         .signInWithEmailAndPassword(email: email, password: password)
         .then((value) {
-      setLoading(false);
+     EasyLoading.dismiss();
+     notify.addTokenToFirebase();
       Get.snackbar('Login with Email ', 'Successfully',
           backgroundColor: Colors.blue, colorText: Colors.white);
       Get.to(HomePage());
     }).onError((error, stackTrace) {
-      setLoading(false);
+      EasyLoading.dismiss();
       Get.snackbar('Error', error.toString(), backgroundColor: Colors.red);
     });
     update();
   }
 
   logout() {
+    EasyLoading.show(status: "Logging out, Please wait...", );
     auth.signOut().then((value) {
+      EasyLoading.dismiss();
       Get.snackbar('Logout Successfully', '',
           backgroundColor: Colors.grey, colorText: Colors.white);
       Get.off(LoginScreen());
     }).onError((error, stackTrace) {
+      EasyLoading.dismiss();
       Get.snackbar('Error', error.toString(), backgroundColor: Colors.red);
     });
     update();
@@ -80,20 +87,24 @@ class AuthController extends GetxController {
     return credentials;
   }
 
+
   signinWithGoolge() {
   clearDb();
-    OAuthCredential credential;
+  EasyLoading.show(status: "Signing in with Google, Please wait...", );
+
+  OAuthCredential credential;
     getGoogleCredentials().then((value) async {
       credential = value;
       await auth.signInWithCredential(credential).then((value) {
+        notify.addTokenToFirebase();
         user = value;
         Get.snackbar('Login with Google',"Successfully!", backgroundColor: Colors.orange, colorText: Colors.white);
         addUserToFirebase(user!.user!.uid, user!.user!.displayName!, user!.user!.email!,user!.user!.photoURL!);
-
+        EasyLoading.dismiss();
         Get.to(HomePage());
       }).onError((error, stackTrace) {
         Get.snackbar('Failed to login' ,error.toString(), backgroundColor: Colors.red, colorText: Colors.white);
-
+        EasyLoading.dismiss();
       });
     });
   }
@@ -126,24 +137,26 @@ class AuthController extends GetxController {
   }
 
  signinWithGithub()async{
-    setLoading(true);
+   EasyLoading.show(status: "Signing in with Github, Please wait...", );
     GithubAuthProvider githubProvider = GithubAuthProvider();
     // Get.to(HomeScreen());
     await auth.signInWithProvider(githubProvider).then((value){
       user = value;
-      setLoading(false);
+      EasyLoading.dismiss();
+      notify.addTokenToFirebase();
       Get.snackbar('Login with Github',"Successfully!", backgroundColor: Colors.black, colorText: Colors.white);
       addUserToFirebase(user!.user!.uid, user!.user!.displayName!, user!.user!.email!,user!.user!.photoURL!);
 
       Get.to(HomePage());
     }).onError((error, stackTrace) {
+      EasyLoading.dismiss();
       Get.snackbar('Failed to login' ,error.toString(), backgroundColor: Colors.red, colorText: Colors.white);
 
     });
 
   }
   signInWithTwitter() async {
-    setLoading(true);
+    EasyLoading.show(status: "Creating Profile, Please wait...", );
     // Create a TwitterLogin instance
     final twitterLogin =  TwitterLogin(
         apiKey: 'NzbGtzswJ2T1HIkgTRIOF0a5i',
@@ -156,9 +169,10 @@ class AuthController extends GetxController {
 
       await auth.signInWithCredential(twitterCrenentials).then((value) {
         user = value;
-        setLoading(false);
+        EasyLoading.dismiss();
+        notify.addTokenToFirebase();
         Get.snackbar('Login with Twitter',"Successfully!", backgroundColor: Colors.blue, colorText: Colors.white);
-        addUserToFirebase(user!.user!.uid, user!.user!.displayName!, user!.user!.email!," user!.user!.photoURL!");
+        addUserToFirebase("user!.user!.uid", 'user!.user!.displayName!', "user!.user!.email!", user!.user!.photoURL!);
         Get.to(HomePage());
       }).onError((error, stackTrace) {
         Get.snackbar('Failed to login' ,error.toString(), backgroundColor: Colors.red, colorText: Colors.white);
@@ -172,6 +186,28 @@ class AuthController extends GetxController {
 
 
   }
+//Sign in with phone
+
+
+  signinWithPhone(String number){
+
+    auth.signInWithPhoneNumber(number).then((value) {
+
+      EasyLoading.dismiss();
+      notify.addTokenToFirebase();
+      Get.snackbar('Login with Twitter',"Successfully!", backgroundColor: Colors.blue, colorText: Colors.white);
+      addUserToFirebase("user!.user!.uid", 'user!.user!.displayName!', "user!.user!.email!", user!.user!.photoURL!);
+      // Get.to(TestScreen());
+    }).onError((error, stackTrace) {
+      Get.snackbar('Failed to login' ,error.toString(), backgroundColor: Colors.red, colorText: Colors.white);
+
+    });
+
+  }
+
+forgetPassword(String email){
+    auth.sendPasswordResetEmail(email: email);
+}
 
 
   /// Firebase Database
@@ -187,8 +223,9 @@ addUserToFirebase(String id, String name, String email, String profile,){
     });
 }
 
-
-
-
+fun([int? a]){
+    print(a);
+}
 
 }
+

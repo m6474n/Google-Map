@@ -9,34 +9,34 @@ import 'package:google_map/components/CutomInputField.dart';
 import 'package:google_map/components/cutomButton2.dart';
 import 'package:google_map/controllers/MapController.dart';
 import 'package:google_map/controllers/ProfileController.dart';
+import 'package:google_map/controllers/notificationController.dart';
 import 'package:google_map/views/ProfileScreens/ProfileScreen.dart';
+import 'package:google_map/views/chatScreen.dart';
 import 'package:google_map/views/googleMap/MapScreen.dart';
 import 'package:google_map/views/googleMap/PolygonScreen.dart';
 
 import '../controllers/Auth_controller.dart';
 
 class HomePage extends StatelessWidget {
-   HomePage({super.key});
-AuthController _controller = Get.put(AuthController());
-
+  HomePage({super.key});
+  AuthController _controller = Get.put(AuthController());
 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: NavigationDrawer(
-            indicatorColor: Colors.deepPurple,
-
-            children: [
-            StreamBuilder( stream: FirebaseFirestore.instance.collection('Users').doc(FirebaseAuth.instance.currentUser!.uid).snapshots(),
+      drawer: NavigationDrawer(indicatorColor: Colors.deepPurple, children: [
+        StreamBuilder(
+            stream: FirebaseFirestore.instance
+                .collection('Users')
+                .doc(FirebaseAuth.instance.currentUser!.uid)
+                .snapshots(),
             builder: (context, snapshot) {
-
-
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
                     child: CircularProgressIndicator(
-                      color: Colors.deepPurple,
-                    ));
+                  color: Colors.deepPurple,
+                ));
               }
               if (snapshot.hasError) {
                 return const Center(
@@ -46,8 +46,14 @@ AuthController _controller = Get.put(AuthController());
                 return const Center(child: Text('No Data Found!'));
               }
 
-             return DrawerHeader(
-                  decoration: BoxDecoration(color: Colors.deepPurple, image: DecorationImage(image: NetworkImage(snapshot.data!['profile']),fit: BoxFit.cover, colorFilter: ColorFilter.mode(Colors.black87, BlendMode.multiply))),
+              return DrawerHeader(
+                  decoration: BoxDecoration(
+                      color: Colors.deepPurple,
+                      image: DecorationImage(
+                          image: NetworkImage(snapshot.data!['profile']),
+                          fit: BoxFit.cover,
+                          colorFilter: ColorFilter.mode(
+                              Colors.black87, BlendMode.multiply))),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,7 +61,8 @@ AuthController _controller = Get.put(AuthController());
                       Padding(
                         padding: const EdgeInsets.only(left: 14.0),
                         child: CircleAvatar(
-                          backgroundImage: NetworkImage(snapshot.data!['profile']),
+                          backgroundImage:
+                              NetworkImage(snapshot.data!['profile']),
                           radius: 32,
                         ),
                       ),
@@ -66,7 +73,10 @@ AuthController _controller = Get.put(AuthController());
                         // ),
                         title: Text(
                           snapshot.data!['name'],
-                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           snapshot.data!['email'],
@@ -74,34 +84,55 @@ AuthController _controller = Get.put(AuthController());
                         ),
                       ),
                     ],
-                  ));}),
-              Padding(
-                padding: const EdgeInsets.only(left:32.0),
-                child: ListTile(
-                  onTap: (){
-                    Get.to(ProfileScreen());
-                  },
-                  leading: Icon(Icons.person, color: Colors.deepPurple,),title: Text('Profile'),),
-              ), Padding(
-                padding: const EdgeInsets.only(left:32.0),
-                child: ListTile(leading: Icon(Icons.help, color: Colors.grey,),title: Text('help'),),
-              ), Padding(
-                padding: const EdgeInsets.only(left:32.0),
-                child: ListTile(
-                  onTap: (){
-                    _controller.logout();
-                  },
-                  leading: Icon(Icons.logout_rounded, color: Colors.red,),title: Text('Logout'),),
-              )
-            ]),
-
-
+                  ));
+            }),
+      Container(
+        padding: EdgeInsets.only(left: 18),
+        child: Column(children: [
+        ListTile(
+          onTap: () {
+            Get.to(ProfileScreen());
+          },
+          leading: Icon(
+            Icons.person,
+            color: Colors.deepPurple,
+          ),
+          title: Text('Profile'),
+        ),
+        ListTile(
+          onTap: (){
+            Get.to(ChatScreen());
+          },
+          leading: Icon(
+            Icons.chat,
+            color: Colors.deepPurple,
+          ),
+          title: Text('Chat'),
+        ),ListTile(
+          leading: Icon(
+            Icons.help,
+            color: Colors.grey,
+          ),
+          title: Text('help'),
+        ),
+        ListTile(
+          onTap: () {
+            _controller.logout();
+          },
+          leading: Icon(
+            Icons.logout_rounded,
+            color: Colors.red,
+          ),
+          title: Text('Logout'),
+        )
+      ],),)
+      ]),
       appBar: AppBar(
         title: Text('Home'),
         actions: [
           IconButton(
               onPressed: () {
-               _controller.logout();
+                _controller.logout();
               },
               icon: Icon(Icons.logout))
         ],
@@ -118,7 +149,8 @@ AuthController _controller = Get.put(AuthController());
                     ontap: () {
                       Get.find<MapController>().markers.clear();
                       Get.find<MapController>().polylineCoordinates.clear();
-                      Get.find<MapController>().title(Get.find<MapController>().sourceController.text);
+                      Get.find<MapController>().title(
+                          Get.find<MapController>().sourceController.text);
 
                       Get.to(MapScreen(title: 'Source'));
                       print('source Location');
@@ -132,8 +164,8 @@ AuthController _controller = Get.put(AuthController());
                 CustomInput(
                     ontap: () {
                       Get.find<MapController>().markers.clear();
-                      Get.find<MapController>().title(Get.find<MapController>().destinationController.text);
-
+                      Get.find<MapController>().title(
+                          Get.find<MapController>().destinationController.text);
 
                       Get.find<MapController>().polylineCoordinates.clear();
                       Get.to(MapScreen(title: 'Destination'));
@@ -144,13 +176,12 @@ AuthController _controller = Get.put(AuthController());
                     prefixIcon: Icons.location_city),
                 // SizedBox(height: 12,),
                 CustomButton2(
-                  color: Colors.grey,
+                    color: Colors.grey,
                     label: 'PolyGon Screen',
                     onTap: () {
                       Get.to(PolygonScreen());
                     },
                     isLoading: false),
-
               ],
             )),
           );
