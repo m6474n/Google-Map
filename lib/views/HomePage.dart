@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:google_map/components/CustomButton.dart';
 import 'package:google_map/components/CutomInputField.dart';
@@ -11,6 +12,7 @@ import 'package:google_map/controllers/MapController.dart';
 import 'package:google_map/controllers/ProfileController.dart';
 import 'package:google_map/controllers/notificationController.dart';
 import 'package:google_map/views/ProfileScreens/ProfileScreen.dart';
+import 'package:google_map/views/ServicesScreen.dart';
 import 'package:google_map/views/chatScreen.dart';
 import 'package:google_map/views/googleMap/MapScreen.dart';
 import 'package:google_map/views/googleMap/PolygonScreen.dart';
@@ -182,6 +184,23 @@ class HomePage extends StatelessWidget {
                       Get.to(PolygonScreen());
                     },
                     isLoading: false),
+                CustomButton2(
+                    color: Colors.red,
+                    label: 'Crash',
+                    onTap: () {
+                      throw Exception();
+
+                    },
+                    isLoading: false), CustomButton2(
+                    color: Colors.redAccent,
+                    label: 'Stop Service',
+                    onTap: () {
+                      // throw Exception();
+                      FlutterBackgroundService service = FlutterBackgroundService();
+                      service.invoke('stopService');
+                    },
+                    isLoading: false),
+                // CustomButton(label: "Services", onTap: (){Get.to(ServiceScreen());}, isLoading: false)
               ],
             )),
           );
@@ -193,9 +212,11 @@ class HomePage extends StatelessWidget {
           isLoading: false,
           label: 'Generate',
           onTap: () {
-            Get.find<MapController>().polylineCoordinates.clear();
-            Get.find<MapController>().completer = Completer();
-            Get.find<MapController>().generateRoute();
+            // Get.find<MapController>().polylineCoordinates.clear();
+            // Get.find<MapController>().completer = Completer();
+            // Get.find<MapController>().generateRoute();
+            Get.to(()=> MapScreen(title: 'Current Location'));
+            Get.find<MapController>().tractLocation();
           },
         ),
       ),

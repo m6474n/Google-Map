@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:google_map/services/NotificationService.dart';
+import 'package:google_map/services/background_services.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -11,21 +13,38 @@ import 'package:get/get.dart';
 import 'package:google_map/views/googleMap/MapScreen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:ui';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 
 class MapController extends GetxController {
-
   NotificationService services = NotificationService();
+  BackgroundServices bgServices = BackgroundServices();
   @override
   void onInit() {
     // TODO: implement onInit
-   searchController.addListener(() { onChanged();});
+    bgServices.initService();
+      Geolocator.getPositionStream().listen((event) {
+        currentValue = event;
+        update();
+      });
+    searchController.addListener(() {
+      onChanged();
+    });
+    FirebaseInstallations.instance.getId().then((value) {
+      print(value);
+    });
 
+    tractLocation();
     // id = uuid.v4();
     // moveToCurrentLocation();
     super.onInit();
   }
 
-   RxString title = 'Location'.obs;
+  RxString title = 'Location'.obs;
+  var currentValue ;
 
   final TextEditingController sourceController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
@@ -36,7 +55,7 @@ class MapController extends GetxController {
 // var id;
 // var uuid = Uuid();
   LatLng initialCamera = LatLng(32.5750722, 74.0072031);
-
+String value = "Location";
   final searchController = TextEditingController();
   Completer<GoogleMapController> completer = Completer();
   FirebaseFirestore ref = FirebaseFirestore.instance;
@@ -45,7 +64,7 @@ class MapController extends GetxController {
 
 // Load map
   loadMap(String title) {
-    if(title == 'Route'){
+    if (title == 'Route') {
       return StreamBuilder(
           stream: ref.collection('Markers').snapshots(),
           builder: (context, snapshot) {
@@ -57,10 +76,10 @@ class MapController extends GetxController {
                   markerId: MarkerId(i.toString()),
                   position: LatLng(snapshot.data!.docs[i]['lat'],
                       snapshot.data!.docs[i]['long']),
-                  infoWindow: InfoWindow(title: snapshot.data!.docs[i]['info'])));
+                  infoWindow:
+                      InfoWindow(title: snapshot.data!.docs[i]['info'])));
             }
             return GoogleMap(
-
                 mapType: MapType.normal,
                 markers: Set<Marker>.of(markers),
                 polylines: {
@@ -70,41 +89,38 @@ class MapController extends GetxController {
                       width: 3,
                       color: Colors.deepPurple)
                 },
-              
                 onMapCreated: (GoogleMapController controller) {
-                  if(completer.isCompleted){
+                  if (completer.isCompleted) {
                     completer.complete(controller);
                   }
                   update();
                 },
                 initialCameraPosition:
-                CameraPosition(target: initialCamera,zoom: 12 ));
+                    CameraPosition(target: initialCamera, zoom: 12));
           });
     }
 
+    return GoogleMap(
+        mapType: MapType.normal,
+        markers: Set<Marker>.of(markers),
+        onTap: (LatLng position) {
+          addMarker(title, position.latitude, position.longitude, title);
 
-          return GoogleMap(
-              mapType: MapType.normal,
-              markers: Set<Marker>.of(markers),
-              onTap:  (LatLng position) {
-                addMarker(title, position.latitude, position.longitude, title);
+          if (title == 'Source') {
+            updateSource(position);
+            print(source);
+          }
+          if (title == 'Destination') {
+            print(destination);
 
-                if (title == 'Source') {
-                  updateSource(position);
-                  print(source);
-                }
-                if (title == 'Destination') {
-                  print(destination);
-
-                  updateDestination(position);
-                }
-                update();
-              },
-              onMapCreated: (GoogleMapController controller) {
-                completer.complete(controller);
-              },
-              initialCameraPosition: CameraPosition(target: initialCamera, zoom: 12));
-
+            updateDestination(position);
+          }
+          update();
+        },
+        onMapCreated: (GoogleMapController controller) {
+          completer.complete(controller);
+        },
+        initialCameraPosition: CameraPosition(target: initialCamera, zoom: 12));
   }
 
   //Get current location
@@ -128,6 +144,7 @@ class MapController extends GetxController {
       Get.snackbar('Location permissions are permanently denied',
           'We can not request the permissions');
     }
+
     return Geolocator.getCurrentPosition();
   }
 
@@ -137,7 +154,7 @@ class MapController extends GetxController {
     await getCurrentLocation().then((value) async {
       initialCamera = LatLng(value.latitude, value.longitude);
       CameraPosition newCameraPosition = CameraPosition(
-          target: LatLng(value.latitude, value.longitude),zoom: 12);
+          target: LatLng(value.latitude, value.longitude), zoom: 12);
       GoogleMapController controller = await completer.future;
       controller
           .animateCamera(CameraUpdate.newCameraPosition(newCameraPosition));
@@ -152,30 +169,39 @@ class MapController extends GetxController {
         .collection('Markers')
         .doc(title)
         .set({"id": id, 'info': title, 'long': long, 'lat': lat});
-
   }
 
 // update source
-  updateSource( LatLng position) async{
-    List<Placemark> placemark = await placemarkFromCoordinates(position.latitude, position.longitude);
-    markers.add(Marker(markerId: MarkerId('Source'), position: position, infoWindow: InfoWindow(title: 'Source')));
-    sourceController.text = "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
-    title("${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}");
+  updateSource(LatLng position) async {
+    List<Placemark> placemark =
+        await placemarkFromCoordinates(position.latitude, position.longitude);
+    markers.add(Marker(
+        markerId: MarkerId('Source'),
+        position: position,
+        infoWindow: InfoWindow(title: 'Source')));
+    sourceController.text =
+        "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
+    title(
+        "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}");
     source = PointLatLng(position.latitude, position.longitude);
     update();
   }
 
 // update destination
-  updateDestination( LatLng position) async {
-    List<Placemark> placemark = await placemarkFromCoordinates(position.latitude, position.longitude);
-    markers.add(Marker(markerId: MarkerId('Destination'), position: position, infoWindow: InfoWindow(title: 'Destination')));
-    title("${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}");
+  updateDestination(LatLng position) async {
+    List<Placemark> placemark =
+        await placemarkFromCoordinates(position.latitude, position.longitude);
+    markers.add(Marker(
+        markerId: MarkerId('Destination'),
+        position: position,
+        infoWindow: InfoWindow(title: 'Destination')));
+    title(
+        "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}");
     destination = PointLatLng(position.latitude, position.longitude);
-    destinationController.text =  "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
+    destinationController.text =
+        "${placemark.last.street}, ${placemark.last.administrativeArea}, ${placemark.last.country}";
     update();
   }
-
-
 
   //PolyLine service
   void getPolyPoints(PointLatLng source, PointLatLng destination) async {
@@ -206,13 +232,14 @@ class MapController extends GetxController {
   }
 
   //Bounds
-  setBounds() async{
-    LatLngBounds bounds =  LatLngBounds(southwest: LatLng(source!.latitude, source!.longitude), northeast: LatLng(destination!.latitude,destination!.longitude));
-  GoogleMapController controller = await completer.future;
-  controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
-  update();
+  setBounds() async {
+    LatLngBounds bounds = LatLngBounds(
+        southwest: LatLng(source!.latitude, source!.longitude),
+        northeast: LatLng(destination!.latitude, destination!.longitude));
+    GoogleMapController controller = await completer.future;
+    controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
+    update();
   }
-
 
   //search
 
@@ -250,8 +277,8 @@ class MapController extends GetxController {
   //update screen on search
 
   updateScreen(
-      String address,
-      ) async {
+    String address,
+  ) async {
     List locals = await locationFromAddress(address);
     print(locals.last.longitude);
     CameraPosition newCameraPosition = CameraPosition(
@@ -264,19 +291,45 @@ class MapController extends GetxController {
     update();
   }
 
+  Marker myMarker = Marker(
+      markerId: MarkerId('99'),
+      position: LatLng(0, 0),
+      icon: BitmapDescriptor.defaultMarkerWithHue(4.9),
+      infoWindow: InfoWindow(title: 'You'));
 
-  clearTitle(){
+  /// live location tracking
+  tractLocation() async {
+    await Geolocator.getPositionStream().listen((value) async {
+      addMarker('99', value.latitude, value.longitude, "You");
+      CameraPosition newCamerPosition = CameraPosition(
+          target: LatLng(value.latitude, value.longitude), zoom: 12);
+      GoogleMapController _controller = await completer.future;
+      _controller.animateCamera(CameraUpdate.newCameraPosition(newCamerPosition));
+    });
+
+    update();
+  }
+
+
+  getLocation()async{
+    await Geolocator.getPositionStream().listen((event) {
+      value = "${event.latitude}, ${event.longitude}";
+      print(event.toString());
+    });
+  }
+
+
+
+  clearTitle() {
     title('Location');
     update();
   }
 
-@override
-  void dispose() {
+  @override
+  void onClose() {
     // TODO: implement dispose
-searchController.dispose();
+    searchController.dispose();
 
-
-  super.dispose();
+    super.dispose();
   }
 }
-

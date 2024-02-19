@@ -56,10 +56,11 @@ MapController c = Get.put(MapController());
       floatingActionButton:title == 'Route'? Container(): Padding(
         padding: const EdgeInsets.all(18),
         child: CustomButton(label: 'Confirm', onTap: () {
-          Get.to(HomePage());
-          Get.find<MapController>().searchController.clear();
-          Get.find<MapController>().clearTitle();
-          Get.find<MapController>().completer = Completer();
+          // Get.to(HomePage());
+          // Get.find<MapController>().searchController.clear();
+          // Get.find<MapController>().clearTitle();
+          // Get.find<MapController>().completer = Completer();
+
 
         }, isLoading: false,),
       ),

@@ -6,6 +6,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get/get.dart';
 import 'package:google_map/controllers/notificationController.dart';
 import 'package:google_map/views/HomePage.dart';
+import 'package:google_map/views/auth/verification.dart';
 import 'package:twitter_login/twitter_login.dart';
 
 import 'package:google_map/views/auth/loginScreen.dart';
@@ -19,6 +20,7 @@ class AuthController extends GetxController {
   NotificationController notify = Get.put(NotificationController());
   final emailController = TextEditingController();
   final passController = TextEditingController();
+  final phoneController = TextEditingController();
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -187,26 +189,65 @@ class AuthController extends GetxController {
 
   }
 //Sign in with phone
+  final otpController = TextEditingController();
+var resendToken;
+  signInWithPhone() async{
+    EasyLoading.show();
+    await auth.verifyPhoneNumber(
+        phoneNumber: phoneController.text.toString(),
+        forceResendingToken: resendToken,
+        verificationCompleted: (PhoneAuthCredential credentials) {
+          EasyLoading.dismiss();
+        },
+        verificationFailed: (FirebaseAuthException ex) {
+          EasyLoading.dismiss();
+          Get.snackbar(ex.toString(), "message");
+        },
+        codeSent: sendCode,
+        codeAutoRetrievalTimeout: (e) {
+          EasyLoading.dismiss();
+          Get.snackbar(e.toString(), "message");
+        });
+  }
+sendCode(verificationId, token) {
+  EasyLoading.showSuccess('OTP has been sent to your phone ${phoneController.text.toString()}');
+  resendToken = token;
+  Get.to(Verification(verificationId: verificationId));
+  EasyLoading.dismiss();
+  update();
+}
+  ///
+  // Future<void> resendOTP( [int? token]) async {
+  //   await FirebaseAuth.instance.verifyPhoneNumber(
+  //     phoneNumber: phoneController.text.toString(),
+  //     timeout: const Duration(seconds: 60),
+  //     verificationCompleted: (PhoneAuthCredential credential) {
+  //       // Auto-retrieval of the OTP completed (e.g., SMS code has been automatically detected).
+  //       // You can use the credential to sign in.
+  //     },
+  //     verificationFailed: (FirebaseAuthException e) {
+  //       // Handle verification failure
+  //       print('Verification Failed: ${e.message}');
+  //     },
+  //     codeSent: (String verificationId, int? resendToken) {
+  //       // OTP code has been sent to the phone number
+  //       print('Code Sent! Verification ID: $verificationId');
+  //     },
+  //     codeAutoRetrievalTimeout: (String verificationId) {
+  //       // Auto-retrieval has timed out
+  //       print('Auto Retrieval Timeout: $verificationId');
+  //     },
+  //     forceResendingToken: token,
+  //   );
+  // }
+  //
 
-
-  signinWithPhone(String number){
-
-    auth.signInWithPhoneNumber(number).then((value) {
-
-      EasyLoading.dismiss();
-      notify.addTokenToFirebase();
-      Get.snackbar('Login with Twitter',"Successfully!", backgroundColor: Colors.blue, colorText: Colors.white);
-      addUserToFirebase("user!.user!.uid", 'user!.user!.displayName!', "user!.user!.email!", user!.user!.photoURL!);
-      // Get.to(TestScreen());
-    }).onError((error, stackTrace) {
-      Get.snackbar('Failed to login' ,error.toString(), backgroundColor: Colors.red, colorText: Colors.white);
+forgetPassword(){
+    EasyLoading.show();
+    auth.sendPasswordResetEmail(email: emailController.text).then((value){
+      Get.snackbar('Password reset link has been sent!',"Please Check your email",);
 
     });
-
-  }
-
-forgetPassword(String email){
-    auth.sendPasswordResetEmail(email: email);
 }
 
 

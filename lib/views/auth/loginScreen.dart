@@ -10,6 +10,7 @@ import 'package:google_map/components/PasswordField.dart';
 import 'package:google_map/controllers/Auth_controller.dart';
 import 'package:google_map/views/HomePage.dart';
 import 'package:google_map/views/auth/forgetPass.dart';
+import 'package:google_map/views/auth/loginWithPhone.dart';
 import 'package:google_map/views/auth/registerScreen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -88,7 +89,31 @@ class LoginScreen extends StatelessWidget {
                                       color: Colors.white, fontSize: 20),
                                 )),
                         ),
+                      ),SizedBox(height: 10,),
+                  GestureDetector(
+                    onTap: () {
+                   Get.to(PhoneLogin());
+                    },
+                    child: Container(
+                      height: 60,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.deepPurpleAccent,
                       ),
+                      child: controller.isLoading == true
+                          ? Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                        ),
+                      )
+                          : Center(
+                          child: Text(
+                            'Continue with Phone',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 20),
+                          )),
+                    )),
                       SizedBox(
                         height: 12,
                       ),
@@ -103,12 +128,16 @@ class LoginScreen extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+
+
+
                             GestureDetector(
                                 onTap: () {
                                   controller.signinWithGoolge();
                                 },
                                 child: SvgPicture.asset("assets/google.svg",
                                     height: 50)),
+
                             GestureDetector(
                               onTap: () {
                                 controller.signinWithGithub();

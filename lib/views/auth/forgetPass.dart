@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_map/components/CustomButton.dart';
 import 'package:google_map/components/EmailField.dart';
 import 'package:google_map/controllers/Auth_controller.dart';
 class ForgetPassword extends StatelessWidget {
@@ -29,7 +30,11 @@ class ForgetPassword extends StatelessWidget {
             EmailField(
                 lable: 'Enter Email',
                 controller: controller.emailController,
-                prefixIcon: Icons.email),],),
+                prefixIcon: Icons.email),
+          CustomButton(label: "Continue", onTap: (){
+            controller.forgetPassword();
+          }, isLoading:false)
+          ],),
       ),
     );});
   }
